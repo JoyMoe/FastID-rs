@@ -1,7 +1,3 @@
-#![feature(test)]
-
-extern crate test;
-
 use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -117,8 +113,6 @@ impl FastIdWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test::Bencher;
-
     #[test]
     fn it_works() {
         println!("");
@@ -126,11 +120,5 @@ mod tests {
         let id = worker.next_id();
         println!("{:#064b}", id);
         println!("{}", id);
-    }
-
-    #[bench]
-    fn bench_id_generation(bencher: &mut Bencher) {
-        let mut worker = FastIdWorker::with_bits_and_epoch(40, 16, 7, 1, 1527811200000000000);
-        bencher.iter(|| worker.next_id());
     }
 }
