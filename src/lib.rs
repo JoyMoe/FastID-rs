@@ -1,3 +1,4 @@
+use std::default::Default;
 use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -110,13 +111,19 @@ impl FastIdWorker {
     }
 }
 
+impl Default for FastIdWorker {
+    fn default() -> Self {
+        FastIdWorker::new(1)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn it_works() {
         println!("");
-        let mut worker = FastIdWorker::new(1);
+        let mut worker = FastIdWorker::default();
         let id = worker.next_id();
         println!("{:#064b}", id);
         println!("{}", id);
