@@ -1,4 +1,3 @@
-use std::default::Default;
 use std::ops::Add;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -7,22 +6,28 @@ pub const DEFAULT_EPOCH: u64 = 1527811200000000000;
 pub struct FastId(i64, #[cfg(feature = "guid")] uuid::Uuid);
 
 impl FastId {
-    fn as_i64(&self) -> i64 {
+    pub fn as_i64(&self) -> i64 {
         self.0
     }
 
-    fn as_u64(&self) -> u64 {
+    pub fn as_u64(&self) -> u64 {
         self.0 as u64
     }
 
     #[cfg(feature = "guid")]
-    fn as_guid(&self) -> uuid::Uuid {
+    pub fn as_guid(&self) -> uuid::Uuid {
         self.1
     }
 
     #[cfg(feature = "base62")]
-    fn to_base62(&self) -> String {
+    pub fn to_base62(&self) -> String {
         format!("{:0>11}", base62::encode(self.as_u64()))
+    }
+
+    #[cfg(feature = "base64")]
+    pub fn to_base64(&self) -> String {
+        let bytes = u64::to_le_bytes(self.as_u64());
+        format!("{:0>12}", base64::encode(bytes))
     }
 }
 
@@ -172,6 +177,7 @@ impl FastIdWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn it_works() {
         let mut worker = FastIdWorker::new(u64::MAX);
