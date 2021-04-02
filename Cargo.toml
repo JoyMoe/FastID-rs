@@ -1,6 +1,6 @@
 [package]
 name = "fastid"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Chino Chang <chino@joymoe.com>"]
 edition = "2018"
 

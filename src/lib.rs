@@ -48,10 +48,14 @@ pub struct FastIdWorker {
     time_bits: usize,
     machine_bits: usize,
     sequence_bits: usize,
+    #[cfg(feature = "guid")]
+    placeholder_bits: usize,
 
     time_mask: u64,
     machine_mask: u64,
     sequence_mask: u64,
+    #[cfg(feature = "guid")]
+    placeholder_mask: u64,
 
     machine_id: u64,
     sequence: u64,
@@ -98,16 +102,25 @@ impl FastIdWorker {
         let machine_mask = !(max << machine_bits);
         let sequence_mask = !(max << sequence_bits);
 
+        #[cfg(feature = "guid")]
+        let placeholder_bits = 14 - sequence_bits;
+        #[cfg(feature = "guid")]
+        let placeholder_mask = !(max << placeholder_bits);
+
         let epoch = UNIX_EPOCH.add(Duration::from_nanos(timestamp));
 
         FastIdWorker {
             time_bits,
             machine_bits,
             sequence_bits,
+            #[cfg(feature = "guid")]
+            placeholder_bits,
 
             time_mask,
             machine_mask,
             sequence_mask,
+            #[cfg(feature = "guid")]
+            placeholder_mask,
 
             machine_id,
             sequence: 0,
@@ -156,8 +169,11 @@ impl FastIdWorker {
 
                 let mut d4 = [0; 8];
 
-                d4[0] = (((self.sequence & 0x3F00) >> 8) as u8) | 0x80;
-                d4[1] = (self.sequence & 0xFF) as u8;
+                let sequence =
+                    (self.sequence << self.placeholder_bits) | (ts & self.placeholder_mask);
+
+                d4[0] = (((sequence & 0x3F00) >> 8) as u8) | 0x80;
+                d4[1] = (sequence & 0xFF) as u8;
 
                 let node_id = u64::to_be_bytes(self.machine_id & 0xFFFF_FFFF_FFFF);
                 d4[2..].copy_from_slice(&node_id[2..]);
