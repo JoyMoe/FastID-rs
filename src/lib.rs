@@ -26,8 +26,10 @@ impl FastId {
 
     #[cfg(feature = "base64")]
     pub fn to_base64(&self) -> String {
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+
         let bytes = u64::to_le_bytes(self.as_u64());
-        format!("{:0>12}", base64::encode(bytes))
+        format!("{:0>12}", STANDARD.encode(bytes))
     }
 }
 
@@ -178,8 +180,7 @@ impl FastIdWorker {
                 let node_id = u64::to_be_bytes(self.machine_id & 0xFFFF_FFFF_FFFF);
                 d4[2..].copy_from_slice(&node_id[2..]);
 
-                let guid = uuid::Uuid::from_fields(time_low, time_mid, time_high_and_version, &d4)
-                    .unwrap();
+                let guid = uuid::Uuid::from_fields(time_low, time_mid, time_high_and_version, &d4);
 
                 return FastId(id, guid);
             }
