@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_EPOCH: u64 = 1527811200000000000;
@@ -60,11 +61,11 @@ pub struct FastIdWorker {
     placeholder_mask: u64,
 
     machine_id: u64,
-    sequence: u64,
+    sequence: Mutex<u64>,
 
     epoch: SystemTime,
 
-    last_timestamp: u64,
+    last_timestamp: Mutex<u64>,
 }
 
 impl FastIdWorker {
@@ -125,11 +126,11 @@ impl FastIdWorker {
             placeholder_mask,
 
             machine_id,
-            sequence: 0,
+            sequence: Mutex::new(0),
 
             epoch: epoch,
 
-            last_timestamp: 0,
+            last_timestamp: Mutex::new(0),
         }
     }
 
@@ -147,17 +148,20 @@ impl FastIdWorker {
         loop {
             let ts = self.get_current_timestamp();
 
-            if ts > self.last_timestamp {
-                self.last_timestamp = ts;
-                self.sequence = 0
-            } else if self.sequence >= self.sequence_mask {
+            let mut last_timestamp = self.last_timestamp.lock().unwrap();
+            let mut sequence = self.sequence.lock().unwrap();
+
+            if ts > *last_timestamp {
+                *last_timestamp = ts;
+                *sequence = 0
+            } else if *sequence >= self.sequence_mask {
                 continue;
             } else {
-                self.sequence += 1;
+                *sequence += 1;
             }
 
             let id = ((ts & self.time_mask) << (self.machine_bits + self.sequence_bits))
-                | ((self.sequence & self.sequence_mask) << self.machine_bits)
+                | ((*sequence & self.sequence_mask) << self.machine_bits)
                 | (self.machine_id & self.machine_mask);
             let id = id as i64;
 
@@ -171,8 +175,7 @@ impl FastIdWorker {
 
                 let mut d4 = [0; 8];
 
-                let sequence =
-                    (self.sequence << self.placeholder_bits) | (ts & self.placeholder_mask);
+                let sequence = (*sequence << self.placeholder_bits) | (ts & self.placeholder_mask);
 
                 d4[0] = (((sequence & 0x3F00) >> 8) as u8) | 0x80;
                 d4[1] = (sequence & 0xFF) as u8;
@@ -196,11 +199,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn can_generate_id() {
         let mut worker = FastIdWorker::new(u64::MAX);
         let id = worker.next_id();
 
         assert_eq!(format!("{:#064b}", id), format!("{:#064b}", id.as_i64()));
         assert_eq!(format!("{}", id), format!("{}", id.as_i64()));
+    }
+
+    #[test]
+    fn can_generate_many_ids() {
+        let mut worker = FastIdWorker::new(u64::MAX);
+
+        let mut last_id = worker.next_id();
+        for _ in 0..1000 {
+            let id = worker.next_id();
+            assert!(id.as_i64() > last_id.as_i64());
+            last_id = id;
+        }
     }
 }
