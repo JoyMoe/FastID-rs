@@ -134,7 +134,7 @@ impl FastIdWorker {
         }
     }
 
-    fn get_current_timestamp(&mut self) -> u64 {
+    fn get_current_timestamp(&self) -> u64 {
         let duration = SystemTime::now()
             .duration_since(self.epoch)
             .unwrap_or(Duration::new(0, 0));
@@ -144,7 +144,7 @@ impl FastIdWorker {
         timestamp as u64
     }
 
-    pub fn next_id(&mut self) -> FastId {
+    pub fn next_id(&self) -> FastId {
         loop {
             let ts = self.get_current_timestamp();
 
